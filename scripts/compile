@@ -1,0 +1,68 @@
+#!/bin/bash
+
+if [ $# != 2 ]; then
+  echo -e "\nUsage: compile \$VERSION[e.g., v4.10] \$ARCH[e.g., i386, x86_64]\n"
+  exit
+fi
+
+VERSION=$1
+ARCH=$2
+
+ROOT=${HOME}/Kernel
+GIT=${ROOT}/git
+LINUX=${ROOT}/${VERSION}/${ARCH}
+
+if [ "${ARCH}" == "i386" ]; then
+  export CFLAGS=-m32
+  export LDFLAGS=-m32
+fi
+
+if [ ! -d ${LINUX} ]; then
+  mkdir -p ${LINUX}
+
+  cd ${GIT}
+  # git checkout master
+  # git pull
+  git checkout ${VERSION}
+  cp -rf ${GIT}/* ${LINUX}
+  echo "[+] source code has been downloaded !"
+fi
+
+cd ${LINUX}
+if [ ! -f ${LINUX}/.config ]; then
+  make ${ARCH}_defconfig
+
+  echo "CONFIG_CONFIGFS_FS=y" >> .config
+  echo "CONFIG_SECURITYFS=y" >> .config
+  echo "CONFIG_NET_9P=y" >> .config
+  echo "CONFIG_9P_FS=y" >> .config
+  echo "CONFIG_VIRTIO_PCI=y" >> .config
+  echo "CONFIG_NET_9P_VIRTIO=y" >> .config
+  echo "CONFIG_9P_FS_POSIX_ACL=y" >> .config
+
+  echo "CONFIG_HOTPLUG_PCI_PCIE=y" >> .config
+  echo "CONFIG_HOTPLUG_PCI=y" >> .config
+  echo "CONFIG_HOTPLUG=y" >> .config
+#
+  echo "CONFIG_KGDB=y" >> .config
+  echo "CONFIG_DEBUG_KERNEL=y" >> .config
+  echo "CONFIG_DEBUG_INFO_DWARF4=y" >> .config
+  echo "CONFIG_GDB_SCRIPTS=y" >> .config  
+#  echo "CONFIG_KASAN=y" >> .config
+  echo "CONFIG_X86_X2APIC=y" >> .config
+#  echo "CONFIG_DEVTMPFS=y" >> .config
+#  echo "CONFIG_X86_PTDUMP=y" >> .config
+  echo "CONFIG_VXGE=y" >> .config
+  echo "CONFIG_NFP=m" >> .config
+  echo "CONFIG_DRM_I915=m" >> .config
+
+  echo "CONFIG_SLUB_DEBUG=y" >> .config
+  echo "CONFIG_DEBUG_KMEMLEAK=y" >> .config
+  echo "CONFIG_DEBUG_KMEMLEAK_DEFAULT_OFF=n" >> .config
+  echo "CONFIG_DEBUG_KMEMLEAK_EARLY_LOG_SIZE=40000" >> .config
+  
+  echo "CONFIG_X86_64=y" >> .config
+fi
+  
+make menuconfig
+make -j`nproc` bzImage
