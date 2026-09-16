@@ -3,12 +3,16 @@
 ## 环境
 
 * [录屏下载链接](https://pan.ruc.edu.cn/link/AA4B18EAA538F94CD9AAC8D1A435B6D1AB)
-* [环境下载链接](https://pan.ruc.edu.cn/link/AA4B18EAA538F94CD9AAC8D1A435B6D1AB)
+* [环境下载链接](https://pan.ruc.edu.cn/link/AA3FBA9D90E0CF44E0B7E0D12EF02DC782)
   * VMWare虚拟机的两个虚拟化选项不是必选。
   * 宿主机用户user，密码abcd1234。
 * [环境搭建文档](./setup.md)
 * [内核调试文档](./debug.md)
 * [gdb操作文档](https://sourceware.org/gdb/current/onlinedocs/gdb#Commands)
+
+### 环境说明
+
+可以简要概括为宿主机（host）中编译内核，客户机（guest）运行内核并加载内核模块等。
 
 ## 章节实验
 
@@ -173,6 +177,24 @@
 
 ### syzkaller
 
-* 使用Syzkaller模糊厕所在内核中预埋的漏洞。
+* 使用Syzkaller模糊测试在内核中预埋的漏洞。
 
 * [step-by-step](./Security/syzkaller/README.md)
+
+## 前置知识
+
+### Linux 内核
+
+![alt text](images/kernel_arch.png)
+
+![alt text](images/kernel_code_arch.png)
+
+### 内核模块
+
+内核模块是一种可以动态加载到Linux内核中的代码，允许在不重新编译或重启内核的情况下扩展内核功能。这种机制为Linux提供了极大的灵活性，使用户可以根据需要添加或删除功能，而不必重新编译整个内核。
+
+但内核模块也存在其缺陷，比如如果内核模块中有 bug 会导致整个系统崩溃，不同内核模块通常依赖于特定的版本等。
+
+### QEMU
+
+QEMU 的原理及使用可参考 https://wokron.github.io/posts/qemu-introduction/ 。
