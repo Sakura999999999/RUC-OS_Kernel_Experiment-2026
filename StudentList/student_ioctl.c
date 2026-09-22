@@ -45,38 +45,76 @@ int main(void)
         }
     }
 
-    /* 按名字查询 */
-    strcpy(s.name, "Alice");
-    if (ioctl(fd, STUDENT_QUERY_NAME, &s) == 0) {
-        printf("Query by name=Alice -> id=%d\n", s.id);
-    } else {
-        perror("ioctl QUERY_NAME");
-    }
-
-    strcpy(s.name, "Judy");
-    if (ioctl(fd, STUDENT_QUERY_NAME, &s) == 0) {
-        printf("Query by name=Judy -> id=%d\n", s.id);
-    } else {
-        perror("ioctl QUERY_NAME");
-    }
-
     /* 按年级查询 */
     int grade = 2023;
     printf("\nQuery grade %d (see kernel log for results)\n", grade);
+    fflush(stdout);
     ioctl(fd, STUDENT_QUERY_GRADE, &grade);
 
     grade = 2022;
     printf("\nQuery grade %d (see kernel log for results)\n", grade);
+    fflush(stdout);
     ioctl(fd, STUDENT_QUERY_GRADE, &grade);
 
     /* 按学院查询 */
     int college = 103;
     printf("\nQuery college %d (see kernel log for results)\n", college);
+    fflush(stdout);
     ioctl(fd, STUDENT_QUERY_COLLEGE, &college);
 
     college = 201;
     printf("\nQuery college %d (see kernel log for results)\n", college);
+    fflush(stdout);
     ioctl(fd, STUDENT_QUERY_COLLEGE, &college);
+
+    /* 添加学生成绩数据 */
+    struct student_score_ioctl score_data;
+    struct {
+        int id;
+        int score;
+    } scores[] = {
+        {2023103111, 88},
+        {2022201456, 95},
+        {2023103122, 91},
+        {2022202457, 76},
+        {2024103113, 84},
+        {2023201789, 90},
+        {2023103555, 87},
+        {2023201333, 93},
+        {2022201999, 79},
+        {2024103666, 89},
+    };
+
+    printf("\nSubmit student scores (see kernel log for results)\n");
+    fflush(stdout);
+    n = sizeof(scores) / sizeof(scores[0]);
+    for (int i = 0; i < n; i++) {
+        score_data.id = scores[i].id;
+        score_data.score = scores[i].score;
+        if (ioctl(fd, STUDENT_SUBMIT_SCORE, &score_data) < 0) {
+            perror("ioctl SUBMIT_SCORE");
+        }
+    }
+
+    /* 查询成绩最高的学生 */
+    printf("\nQuery top student (see kernel log for results)\n");
+    fflush(stdout);
+    if (ioctl(fd, STUDENT_QUERY_TOP, &score_data) < 0) {
+        perror("ioctl QUERY_TOP");
+    }
+
+    /* 修改 Alice 的成绩后查询成绩最高的学生 */
+    printf("\nUpdate Alice score and query top student (see kernel log for results)\n");
+    fflush(stdout);
+    score_data.id = 2023103111;
+    score_data.score = 99;
+    if (ioctl(fd, STUDENT_SUBMIT_SCORE, &score_data) < 0) {
+        perror("ioctl SUBMIT_SCORE");
+    }
+
+    if (ioctl(fd, STUDENT_QUERY_TOP, &score_data) < 0) {
+        perror("ioctl QUERY_TOP");
+    }
 
     close(fd);
     return 0;

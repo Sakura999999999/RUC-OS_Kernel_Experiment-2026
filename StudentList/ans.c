@@ -46,76 +46,166 @@ static struct hlist_head grade_table[GRADE_BUCKETS];
 static struct hlist_head college_table[COLLEGE_BUCKETS];
 static struct idr student_idr;
 static DECLARE_KFIFO(score_fifo, struct student_score, SCORE_FIFO_SIZE);
-static struct rb_root score_root = RB_ROOT;
+static struct rb_root score_root;
 
 static inline int get_grade(int id) { return id / 1000000; }
 static inline int get_college(int id) { return (id / 1000) % 1000; }
 static inline unsigned int grade_hashfn(int grade) { return grade & (GRADE_BUCKETS - 1); }
 static inline unsigned int college_hashfn(int college) { return college & (COLLEGE_BUCKETS - 1); }
 
+static void dequeue_score(void);
+static void insert_score_node(struct student *stu);
+static void remove_score_node(struct student *stu);
+static void update_student_score(struct student *stu, int score);
+
 static void init(void)
 {
-    /* TODO: initialize hash tables, IDR, KFIFO, and rbtree */
+    int i;
+
+    for (i = 0; i < GRADE_BUCKETS; i++)
+        INIT_HLIST_HEAD(&grade_table[i]);
+    for (i = 0; i < COLLEGE_BUCKETS; i++)
+        INIT_HLIST_HEAD(&college_table[i]);
+    idr_init(&student_idr);
+    INIT_KFIFO(score_fifo);
+    score_root = RB_ROOT;
 }
 
 static struct student *create_student(int id, const char *name)
 {
     struct student *stu;
-    /* TODO: allocate and initialize a student struct; set score to -1 */
+
+    stu = kmalloc(sizeof(*stu), GFP_KERNEL);
+    if (!stu)
+        return NULL;
+
+    stu->id = id;
+    strscpy(stu->name, name, sizeof(stu->name));
+    stu->score = -1;
+    stu->idr_id = -1;
+    INIT_LIST_HEAD(&stu->list);
+    INIT_HLIST_NODE(&stu->hnode_grade);
+    INIT_HLIST_NODE(&stu->hnode_college);
+    RB_CLEAR_NODE(&stu->score_node);
+
     return stu;
 }
 
 static void add_student(struct student *stu)
 {
-    /* TODO: allocate an IDR ID and add the student to all indexes */
+    int grade;
+    int college;
+
+    stu->idr_id = idr_alloc(&student_idr, stu, 0, 0, GFP_KERNEL);
+    if (stu->idr_id < 0) {
+        kfree(stu);
+        return;
+    }
+
+    grade = get_grade(stu->id);
+    college = get_college(stu->id);
+    list_add_tail(&stu->list, &student_list);
+    hlist_add_head(&stu->hnode_grade, &grade_table[grade_hashfn(grade)]);
+    hlist_add_head(&stu->hnode_college, &college_table[college_hashfn(college)]);
 }
 
 static void del_student(struct student *stu)
 {
-    /* TODO: remove the student from all indexes and free it */
+    if (!stu)
+        return;
+
+    dequeue_score();
+    remove_score_node(stu);
+    list_del(&stu->list);
+    hlist_del(&stu->hnode_grade);
+    hlist_del(&stu->hnode_college);
+    if (stu->idr_id >= 0)
+        idr_remove(&student_idr, stu->idr_id);
+    kfree(stu);
 }
 
 static struct student *find_by_id(int id)
 {
-    /* TODO: find a student by student ID */
+    struct student *stu;
+
+    list_for_each_entry(stu, &student_list, list) {
+        if (stu->id == id)
+            return stu;
+    }
     return NULL;
 }
 
 static struct student *find_by_idr_id(int idr_id)
 {
-    /* TODO: find a student by IDR ID */
-    return NULL;
+    return idr_find(&student_idr, idr_id);
 }
 
 static void enqueue_score(const struct student_score *score)
 {
-    /* TODO: validate and enqueue a score record to KFIFO */
+    if (!score || score->score < 0 || score->score > 100)
+        return;
+    if (!find_by_idr_id(score->idr_id))
+        return;
+    kfifo_in(&score_fifo, score, 1);
 }
 
 static void dequeue_score(void)
 {
-    /* TODO: process all queued score events in FIFO order */
+    struct student_score score;
+    struct student *stu;
+
+    while (kfifo_out(&score_fifo, &score, 1)) {
+        stu = find_by_idr_id(score.idr_id);
+        if (stu)
+            update_student_score(stu, score.score);
+    }
 }
 
 static void insert_score_node(struct student *stu)
 {
-    /* TODO: insert the student into the score rbtree */
+    struct rb_node **link = &score_root.rb_node;
+    struct rb_node *parent = NULL;
+    struct student *entry;
+
+    while (*link) {
+        parent = *link;
+        entry = rb_entry(parent, struct student, score_node);
+        if (stu->score < entry->score ||
+            (stu->score == entry->score && stu->idr_id < entry->idr_id))
+            link = &parent->rb_left;
+        else
+            link = &parent->rb_right;
+    }
+
+    rb_link_node(&stu->score_node, parent, link);
+    rb_insert_color(&stu->score_node, &score_root);
 }
 
 static void remove_score_node(struct student *stu)
 {
-    /* TODO: remove the student from the score rbtree */
+    if (!stu || RB_EMPTY_NODE(&stu->score_node))
+        return;
+    rb_erase(&stu->score_node, &score_root);
+    RB_CLEAR_NODE(&stu->score_node);
 }
 
 static void update_student_score(struct student *stu, int score)
 {
-    /* TODO: update the score and maintain the rbtree */
+    if (!stu || score < 0 || score > 100)
+        return;
+    remove_score_node(stu);
+    stu->score = score;
+    insert_score_node(stu);
 }
 
 static struct student *find_top_student(void)
 {
-    /* TODO: return the student with the highest score */
-    return NULL;
+    struct rb_node *node;
+
+    if (RB_EMPTY_ROOT(&score_root))
+        return NULL;
+    node = rb_last(&score_root);
+    return rb_entry(node, struct student, score_node);
 }
 
 /* ---------------- IOCTL 定义 ---------------- */
@@ -123,9 +213,9 @@ static struct student *find_top_student(void)
 #define STUDENT_MAGIC   'S'
 
 #define STUDENT_ADD             _IOW(STUDENT_MAGIC, 1, struct student_ioctl)
-#define STUDENT_DEL             _IOW(STUDENT_MAGIC, 2, int)
-#define STUDENT_QUERY_GRADE     _IOWR(STUDENT_MAGIC, 4, int)
-#define STUDENT_QUERY_COLLEGE   _IOWR(STUDENT_MAGIC, 5, int)
+#define STUDENT_DEL             _IOW(STUDENT_MAGIC, 2, int) 
+#define STUDENT_QUERY_GRADE     _IOWR(STUDENT_MAGIC, 4, int) 
+#define STUDENT_QUERY_COLLEGE   _IOWR(STUDENT_MAGIC, 5, int) 
 #define STUDENT_SUBMIT_SCORE    _IOW(STUDENT_MAGIC, 6, struct student_score_ioctl)
 #define STUDENT_QUERY_TOP       _IOR(STUDENT_MAGIC, 7, struct student_score_ioctl)
 
@@ -278,6 +368,9 @@ static void __exit student_exit(void)
     struct student *stu, *tmp;
     list_for_each_entry_safe(stu, tmp, &student_list, list)
         del_student(stu);
+
+    kfifo_reset(&score_fifo);
+    idr_destroy(&student_idr);
 
     device_destroy(student_class, devno);
     class_destroy(student_class);

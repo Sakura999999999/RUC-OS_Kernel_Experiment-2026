@@ -4,19 +4,19 @@
 
 ## 环境准备
 
-* （可选）编译指定版本内核，实验中采用v6.6。
+* 编译指定版本内核，实验中采用v6.0。因为需要编译内核模块，所以要将 compile 脚本的最后改为 ``make -j`nproc` ``，不仅指定编译产物为 bzImage。随后运行 compile 脚本。
 
 ```bash
 cd ~/Kernel
-./compile v6.6 x86_64
+./compile v6.0 i386
 ```
 
 * 拷贝仓库源码到宿主机的共享文件夹。
 
 ```bash
 cd ~/Workdir/share
-git clone https://github.com/CheUhxg/RUC-OS_Kernel_Experiment-2025
-mv RUC-OS_Kernel_Experiment-2025 practice_kern
+git clone https://github.com/Sakura999999999/RUC-OS_Kernel_Experiment-2026.git
+mv RUC-OS_Kernel_Experiment-2026 practice_kern
 ```
 
 * 进入项目目录。
@@ -29,7 +29,7 @@ cd practice_kern/StudentList
 
 ```Makefile
 # 目标内核的根目录（确认是否存在对应目录）
-LINUX_KERNEL_PATH := /home/user/Kernel/v6.6/x86_64/
+LINUX_KERNEL_PATH := /home/user/Kernel/v6.0/i386/
 ```
 
 * 编译内核模块。
@@ -45,7 +45,7 @@ make
 * 启动qemu运行编译好的内核。
 
 ```bash
-./run v6.6 x86_64 focal
+./run v6.0 i386 buster
 ```
 
 * 用户为user，无密码。
@@ -69,71 +69,7 @@ cd StudentList
 make load
 ```
 
-* 编译运行（make user && make run）用户态程序，该程序会通过ioctl操作内核中的用户链表。
-
-```c
-/* 添加多条学生数据 */
-struct {
-    int id;
-    char name[16];
-} dataset[] = {
-    {2023103111, "Alice"},
-    {2022201456, "Bob"},
-    {2023103122, "Carol"},
-    {2022202457, "David"},
-    {2024103113, "Eve"},
-    {2023201789, "Frank"},
-    {2023103555, "Grace"},
-    {2023201333, "Heidi"},
-    {2022201999, "Ivan"},
-    {2024103666, "Judy"},
-};
-
-int n = sizeof(dataset) / sizeof(dataset[0]);
-for (int i = 0; i < n; i++) {
-    s.id = dataset[i].id;
-    strncpy(s.name, dataset[i].name, sizeof(s.name));
-    s.name[sizeof(s.name)-1] = '\0';
-    if (ioctl(fd, STUDENT_ADD, &s) < 0) {
-        perror("ioctl ADD");
-    } else {
-        printf("Added: %d %s\n", s.id, s.name);
-    }
-}
-
-/* 按名字查询 */
-strcpy(s.name, "Alice");
-if (ioctl(fd, STUDENT_QUERY_NAME, &s) == 0) {
-    printf("Query by name=Alice -> id=%d\n", s.id);
-} else {
-    perror("ioctl QUERY_NAME");
-}
-
-strcpy(s.name, "Judy");
-if (ioctl(fd, STUDENT_QUERY_NAME, &s) == 0) {
-    printf("Query by name=Judy -> id=%d\n", s.id);
-} else {
-    perror("ioctl QUERY_NAME");
-}
-
-/* 按年级查询 */
-int grade = 2023;
-printf("\nQuery grade %d (see kernel log for results)\n", grade);
-ioctl(fd, STUDENT_QUERY_GRADE, &grade);
-
-grade = 2022;
-printf("\nQuery grade %d (see kernel log for results)\n", grade);
-ioctl(fd, STUDENT_QUERY_GRADE, &grade);
-
-/* 按学院查询 */
-int college = 103;
-printf("\nQuery college %d (see kernel log for results)\n", college);
-ioctl(fd, STUDENT_QUERY_COLLEGE, &college);
-
-college = 201;
-printf("\nQuery college %d (see kernel log for results)\n", college);
-ioctl(fd, STUDENT_QUERY_COLLEGE, &college);
-```
+* 编译运行（make user && make run）用户态程序，该程序会通过ioctl操作内核中的用户链表，具体测试样例见student_ioctl.c。
 
 * （可选）卸载内核模块student_list。
 
@@ -148,60 +84,70 @@ make unload
 * 请实现内核模块的TODO，使得进入客户机后编译运行（make user && make run）用户态程序，能够得到正确输出。
 
 ``` bash
-user@kernel:~/StudentList$ make load
-sudo insmod student_list.ko
-[ 6101.015527][ T8104] student module loaded
-user@kernel:~/StudentList$ make user
-gcc student_ioctl.c -o student_ioctl
-user@kernel:~/StudentList$ make run
+user@kernel:/tmp/share/RUC-OS_Kernel_Experiment-2026/StudentList$ make run
 sudo ./student_ioctl
-[ 6103.453687][ T8113] Added student 2023103111 Alice
+[ 1004.580009] Added student 2023103111 Alice
 Added: 2023103111 Alice
-[ 6103.454156][ T8113] Added student 2022201456 Bob
+[ 1004.585396] Added student 2022201456 Bob
 Added: 2022201456 Bob
-[ 6103.454552][ T8113] Added student 2023103122 Carol
+[ 1004.586959] Added student 2023103122 Carol
 Added: 2023103122 Carol
-[ 6103.454950][ T8113] Added student 2022202457 David
+[ 1004.587698] Added student 2022202457 David
 Added: 2022202457 David
-[ 6103.455358][ T8113] Added student 2024103113 Eve
+[ 1004.588251] Added student 2024103113 Eve
 Added: 2024103113 Eve
-[ 6103.455748][ T8113] Added student 2023201789 Frank
+[ 1004.589096] Added student 2023201789 Frank
 Added: 2023201789 Frank
-[ 6103.456155][ T8113] Added student 2023103555 Grace
+[ 1004.589909] Added student 2023103555 Grace
 Added: 2023103555 Grace
-[ 6103.456564][ T8113] Added student 2023201333 Heidi
+[ 1004.590860] Added student 2023201333 Heidi
 Added: 2023201333 Heidi
-[ 6103.456972][ T8113] Added student 2022201999 Ivan
+[ 1004.591626] Added student 2022201999 Ivan
 Added: 2022201999 Ivan
-[ 6103.457368][ T8113] Added student 2024103666 Judy
+[ 1004.592155] Added student 2024103666 Judy
 Added: 2024103666 Judy
-[ 6103.457762][ T8113] Query name=Alice -> id=2023103111
-Query by name=Alice -> id=2023103111
-[ 6103.458246][ T8113] Query name=Judy -> id=2024103666
-Query by name=Judy -> id=2024103666
 
 Query grade 2023 (see kernel log for results)
-[ 6103.459012][ T8113] Grade 2023: 2023201333 Heidi
-[ 6103.459259][ T8113] Grade 2023: 2023103555 Grace
-[ 6103.459500][ T8113] Grade 2023: 2023201789 Frank
-[ 6103.459740][ T8113] Grade 2023: 2023103122 Carol
-[ 6103.460290][ T8113] Grade 2023: 2023103111 Alice
+[ 1004.593547] Grade 2023: 2023201333 Heidi
+[ 1004.593809] Grade 2023: 2023103555 Grace
+[ 1004.594012] Grade 2023: 2023201789 Frank
+[ 1004.594213] Grade 2023: 2023103122 Carol
+[ 1004.594536] Grade 2023: 2023103111 Alice
 
 Query grade 2022 (see kernel log for results)
-[ 6103.460809][ T8113] Grade 2022: 2022201999 Ivan
-[ 6103.461040][ T8113] Grade 2022: 2022202457 David
-[ 6103.461275][ T8113] Grade 2022: 2022201456 Bob
+[ 1004.595691] Grade 2022: 2022201999 Ivan
+[ 1004.595949] Grade 2022: 2022202457 David
+[ 1004.596118] Grade 2022: 2022201456 Bob
 
 Query college 103 (see kernel log for results)
-[ 6103.461785][ T8113] College 103: 2024103666 Judy
-[ 6103.462020][ T8113] College 103: 2023103555 Grace
-[ 6103.462260][ T8113] College 103: 2024103113 Eve
-[ 6103.462490][ T8113] College 103: 2023103122 Carol
-[ 6103.462728][ T8113] College 103: 2023103111 Alice
+[ 1004.597221] College 103: 2024103666 Judy
+[ 1004.597659] College 103: 2023103555 Grace
+[ 1004.597833] College 103: 2024103113 Eve
+[ 1004.598093] College 103: 2023103122 Carol
+[ 1004.598309] College 103: 2023103111 Alice
 
 Query college 201 (see kernel log for results)
-[ 6103.463249][ T8113] College 201: 2022201999 Ivan
-[ 6103.463487][ T8113] College 201: 2023201333 Heidi
-[ 6103.463726][ T8113] College 201: 2023201789 Frank
-[ 6103.463965][ T8113] College 201: 2022201456 Bob
+[ 1004.599487] College 201: 2022201999 Ivan
+[ 1004.599658] College 201: 2023201333 Heidi
+[ 1004.599906] College 201: 2023201789 Frank
+[ 1004.600066] College 201: 2022201456 Bob
+
+Submit student scores (see kernel log for results)
+[ 1004.601189] Submitted score: 2023103111 88
+[ 1004.601454] Submitted score: 2022201456 95
+[ 1004.601824] Submitted score: 2023103122 91
+[ 1004.602050] Submitted score: 2022202457 76
+[ 1004.602225] Submitted score: 2024103113 84
+[ 1004.602798] Submitted score: 2023201789 90
+[ 1004.603001] Submitted score: 2023103555 87
+[ 1004.603282] Submitted score: 2023201333 93
+[ 1004.603713] Submitted score: 2022201999 79
+[ 1004.603909] Submitted score: 2024103666 89
+
+Query top student (see kernel log for results)
+[ 1004.605079] Top student: 2022201456, score=95
+
+Update Alice score and query top student (see kernel log for results)
+[ 1004.606236] Submitted score: 2023103111 99
+[ 1004.606872] Top student: 2023103111, score=99
 ```

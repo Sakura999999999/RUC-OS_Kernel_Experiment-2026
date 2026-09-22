@@ -1,7 +1,7 @@
 obj-m += student_list.o
 CURRENT_PATH := $(shell pwd)
-VERSION := v6.6
-ARCH := x86_64
+VERSION := v6.0
+ARCH := i386
 LINUX_KERNEL_PATH := /home/user/Kernel/$(VERSION)/$(ARCH)/
 
 all:
