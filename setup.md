@@ -63,13 +63,15 @@ Host OS-Kernel-Experiment
 
 # 环境运行
 
+由于本学期实验使用的都是i386架构，故需要更新WorkSpace中的run.sh中的qemu启动命令。具体命令见scripts/run.sh。
+
 * 编译内核（进入${HOME}/Kernel目录）
 
 ``` bash
 ./compile <kernel-tag> <arch>
 
 # 实例
-./compile v5.17 x86_64
+./compile v6.0 i386
 ```
 
 ![setup_compile](./images/setup_compile.png)
@@ -80,7 +82,7 @@ Host OS-Kernel-Experiment
 ./run <kernel-tag> <arch> <image>
 
 # 实例
-./run v5.17 x86_64 focal
+./run v6.0 i386 buster
 ```
 
 ![setup_run](./images/setup_run.png)
