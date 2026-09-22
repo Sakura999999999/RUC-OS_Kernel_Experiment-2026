@@ -65,4 +65,4 @@ if [ ! -f ${LINUX}/.config ]; then
 fi
   
 make menuconfig
-make -j`nproc` bzImage
+make -j`nproc`

@@ -28,14 +28,14 @@ HDA=${ROOT}/image/${ARCH}/${IMAGE}.img
 LINUX=${ROOT}/${VERSION}/${ARCH}
 # LINUX=${ROOT}/git
 SHARE=${ROOT}/share
-KERNEL=${LINUX}/arch/x86/boot/bzImage
+KERNEL=${LINUX}/arch/${ARCH}/boot/bzImage
 
 if [ ! -f ${KERNEL} ]; then
   echo "Compile the target kernel before using it..."
   exit
 fi
 
-qemu-system-x86_64 \
+qemu-system-i386 \
     -snapshot \
     -s \
     -m 4G \
@@ -51,6 +51,6 @@ qemu-system-x86_64 \
     -fsdev local,security_model=passthrough,id=fsdev1,path=${SHARE} \
     -device virtio-9p-pci,id=fs1,fsdev=fsdev1,mount_tag=hostshare \
     -pidfile vm.pid \
-    -cpu qemu64 \
+    -cpu qemu32 \
     2>&1 | tee vm.log
 
