@@ -4,7 +4,7 @@
 
 ## 环境准备
 
-* 编译指定版本内核，实验中采用v6.0。因为需要编译内核模块，所以要将 compile 脚本的最后改为 ``make -j`nproc` ``，不仅指定编译产物为 bzImage。随后运行 compile 脚本。
+* （可选）编译指定版本内核，实验中采用v6.0。
 
 ```bash
 cd ~/Kernel
@@ -81,73 +81,89 @@ make unload
 
 ## 实验要求
 
+### 实验场景与功能
+
+本实验实现一个简单的学生信息与考试成绩管理模块。用户态程序通过 `ioctl` 与内核模块交互，内核模块负责保存学生信息、接收成绩事件并维护成绩排名。
+
+实验流程如下：
+
+1. 用户态程序向内核添加多名学生，记录学生的学号和姓名。
+2. 内核使用 `list` 保存全部学生记录，使用 `hlist` 建立按年级和学院查询的索引。
+3. 用户态程序可以根据年级或学院查询学生，查询结果通过内核日志输出。
+4. 用户态程序提交学生成绩。提交的数据包含原始学号和成绩，内核根据学号找到对应学生，并获取该学生的 IDR 内部编号。
+5. 内核将“IDR 编号和成绩”组成成绩记录，按提交顺序放入 `kfifo`。
+6. 查询最高分时，内核按照先进先出的顺序处理成绩记录，并更新学生成绩。
+7. 已录入成绩的学生通过 `rbtree` 按成绩维护排名，成绩相同时按 IDR 编号排序。
+8. 用户态程序可以查询当前最高分学生，也可以重新提交成绩，内核会更新红黑树中的排名。
+
+本实验使用的主要内核数据结构包括：
+
+- `list`：保存全部学生记录；
+- `hlist`：按年级和学院建立查询索引；
+- `IDR`：为每个学生分配内核内部编号；
+- `kfifo`：缓存待处理的成绩事件；
+- `rbtree`：维护学生成绩排名。
+
+主要 `ioctl` 操作包括：
+
+- `STUDENT_ADD`：添加学生；
+- `STUDENT_DEL`：按学号删除学生；
+- `STUDENT_QUERY_GRADE`：按年级查询学生；
+- `STUDENT_QUERY_COLLEGE`：按学院查询学生；
+- `STUDENT_SUBMIT_SCORE`：提交学生成绩；
+- `STUDENT_QUERY_TOP`：查询当前最高分学生。
+
+### 实验输出
+
 * 请实现内核模块的TODO，使得进入客户机后编译运行（make user && make run）用户态程序，能够得到正确输出。
 
 ``` bash
 user@kernel:/tmp/share/RUC-OS_Kernel_Experiment-2026/StudentList$ make run
 sudo ./student_ioctl
-[ 1004.580009] Added student 2023103111 Alice
-Added: 2023103111 Alice
-[ 1004.585396] Added student 2022201456 Bob
-Added: 2022201456 Bob
-[ 1004.586959] Added student 2023103122 Carol
-Added: 2023103122 Carol
-[ 1004.587698] Added student 2022202457 David
-Added: 2022202457 David
-[ 1004.588251] Added student 2024103113 Eve
-Added: 2024103113 Eve
-[ 1004.589096] Added student 2023201789 Frank
-Added: 2023201789 Frank
-[ 1004.589909] Added student 2023103555 Grace
-Added: 2023103555 Grace
-[ 1004.590860] Added student 2023201333 Heidi
-Added: 2023201333 Heidi
-[ 1004.591626] Added student 2022201999 Ivan
-Added: 2022201999 Ivan
-[ 1004.592155] Added student 2024103666 Judy
-Added: 2024103666 Judy
-
-Query grade 2023 (see kernel log for results)
-[ 1004.593547] Grade 2023: 2023201333 Heidi
-[ 1004.593809] Grade 2023: 2023103555 Grace
-[ 1004.594012] Grade 2023: 2023201789 Frank
-[ 1004.594213] Grade 2023: 2023103122 Carol
-[ 1004.594536] Grade 2023: 2023103111 Alice
-
-Query grade 2022 (see kernel log for results)
-[ 1004.595691] Grade 2022: 2022201999 Ivan
-[ 1004.595949] Grade 2022: 2022202457 David
-[ 1004.596118] Grade 2022: 2022201456 Bob
-
-Query college 103 (see kernel log for results)
-[ 1004.597221] College 103: 2024103666 Judy
-[ 1004.597659] College 103: 2023103555 Grace
-[ 1004.597833] College 103: 2024103113 Eve
-[ 1004.598093] College 103: 2023103122 Carol
-[ 1004.598309] College 103: 2023103111 Alice
-
-Query college 201 (see kernel log for results)
-[ 1004.599487] College 201: 2022201999 Ivan
-[ 1004.599658] College 201: 2023201333 Heidi
-[ 1004.599906] College 201: 2023201789 Frank
-[ 1004.600066] College 201: 2022201456 Bob
-
-Submit student scores (see kernel log for results)
-[ 1004.601189] Submitted score: 2023103111 88
-[ 1004.601454] Submitted score: 2022201456 95
-[ 1004.601824] Submitted score: 2023103122 91
-[ 1004.602050] Submitted score: 2022202457 76
-[ 1004.602225] Submitted score: 2024103113 84
-[ 1004.602798] Submitted score: 2023201789 90
-[ 1004.603001] Submitted score: 2023103555 87
-[ 1004.603282] Submitted score: 2023201333 93
-[ 1004.603713] Submitted score: 2022201999 79
-[ 1004.603909] Submitted score: 2024103666 89
-
-Query top student (see kernel log for results)
-[ 1004.605079] Top student: 2022201456, score=95
-
-Update Alice score and query top student (see kernel log for results)
-[ 1004.606236] Submitted score: 2023103111 99
-[ 1004.606872] Top student: 2023103111, score=99
+[  984.053798] Added student 2023103111 Alice
+[  984.061966] Added student 2022201456 Bob
+[  984.065771] Added student 2023103122 Carol
+[  984.071621] Added student 2022202457 David
+[  984.072775] Added student 2024103113 Eve
+[  984.073020] Added student 2023201789 Frank
+[  984.073869] Added student 2023103555 Grace
+[  984.074323] Added student 2023201333 Heidi
+[  984.074673] Added student 2022201999 Ivan
+[  984.074951] Added student 2024103666 Judy
+[  984.075466] Query grade 2023 (see kernel log for results)
+[  984.075985] Grade 2023: 2023201333 Heidi
+[  984.076374] Grade 2023: 2023103555 Grace
+[  984.076915] Grade 2023: 2023201789 Frank
+[  984.077074] Grade 2023: 2023103122 Carol
+[  984.077190] Grade 2023: 2023103111 Alice
+[  984.077694] Query grade 2022 (see kernel log for results)
+[  984.078165] Grade 2022: 2022201999 Ivan
+[  984.078424] Grade 2022: 2022202457 David
+[  984.078597] Grade 2022: 2022201456 Bob
+[  984.078804] Query college 103 (see kernel log for results)
+[  984.079127] College 103: 2024103666 Judy
+[  984.079391] College 103: 2023103555 Grace
+[  984.080341] College 103: 2024103113 Eve
+[  984.081443] College 103: 2023103122 Carol
+[  984.082984] College 103: 2023103111 Alice
+[  984.083276] Query college 201 (see kernel log for results)
+[  984.083524] College 201: 2022201999 Ivan
+[  984.083922] College 201: 2023201333 Heidi
+[  984.084119] College 201: 2023201789 Frank
+[  984.084529] College 201: 2022201456 Bob
+[  984.084895] Submitted score: 2023103111 88
+[  984.085114] Submitted score: 2022201456 95
+[  984.085499] Submitted score: 2023103122 91
+[  984.085727] Submitted score: 2022202457 76
+[  984.086028] Submitted score: 2024103113 84
+[  984.086467] Submitted score: 2023201789 90
+[  984.086730] Submitted score: 2023103555 87
+[  984.086941] Submitted score: 2023201333 93
+[  984.087206] Submitted score: 2022201999 79
+[  984.087934] Submitted score: 2024103666 89
+[  984.088180] Query top student (see kernel log for results)
+[  984.089419] Top student: 2022201456, score=95
+[  984.089871] Submitted score: 2023103111 99
+[  984.090192] Query top student (see kernel log for results)
+[  984.090556] Top student: 2023103111, score=99
 ```
