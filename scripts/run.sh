@@ -28,7 +28,8 @@ HDA=${ROOT}/image/${ARCH}/${IMAGE}.img
 LINUX=${ROOT}/${VERSION}/${ARCH}
 # LINUX=${ROOT}/git
 SHARE=${ROOT}/share
-KERNEL=${LINUX}/arch/${ARCH}/boot/bzImage
+# KERNEL=${LINUX}/arch/${ARCH}/boot/bzImage
+KERNEL=${LINUX}/arch/x86/boot/bzImage
 
 if [ ! -f ${KERNEL} ]; then
   echo "Compile the target kernel before using it..."

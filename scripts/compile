@@ -61,8 +61,8 @@ if [ ! -f ${LINUX}/.config ]; then
   echo "CONFIG_DEBUG_KMEMLEAK_DEFAULT_OFF=n" >> .config
   echo "CONFIG_DEBUG_KMEMLEAK_EARLY_LOG_SIZE=40000" >> .config
   
-  echo "CONFIG_X86_64=y" >> .config
+#  echo "CONFIG_X86_64=y" >> .config
 fi
   
-make menuconfig
-make -j`nproc`
+make ARCH=${ARCH} menuconfig
+make ARCH=${ARCH} -j$(nproc) bzImage
