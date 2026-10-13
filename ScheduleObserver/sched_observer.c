@@ -43,11 +43,13 @@ static int __init sched_observer_init(void) {
         snprintf(threads[i].name, sizeof(threads[i].name), "observer_%d", i);
         
         // 创建线程并传递对应数据结构
-        threads[i].task = kthread_run(observer_func, &threads[i], threads[i].name);
+        threads[i].task = kthread_create(observer_func, &threads[i], threads[i].name);
         if (IS_ERR(threads[i].task)) {
             printk(KERN_ERR "Failed to create thread %d\n", i);
             return PTR_ERR(threads[i].task);
         }
+        kthread_bind(threads[i].task, 0);  // 将线程绑定到同一个cpu
+        wake_up_process(threads[i].task);
 
         // TODO: set thread priority
     }
