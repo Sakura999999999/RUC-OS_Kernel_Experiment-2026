@@ -4,19 +4,19 @@
 
 ## 环境准备
 
-* （可选）编译指定版本内核，实验中采用v6.6。
+* （可选）编译指定版本内核，实验中采用v6.0。
 
 ```bash
 cd ~/Kernel
-./compile v6.6 x86_64
+./compile v6.0 i386
 ```
 
 * 拷贝仓库源码到宿主机的共享文件夹。
 
 ```bash
 cd ~/Workdir/share
-git clone https://github.com/CheUhxg/RUC-OS_Kernel_Experiment-2025
-mv RUC-OS_Kernel_Experiment-2025 practice_kern
+git clone https://github.com/Sakura999999999/RUC-OS_Kernel_Experiment-2026
+mv RUC-OS_Kernel_Experiment-2026 practice_kern
 ```
 
 * 拷贝实验目录到客户机本地。
@@ -30,7 +30,7 @@ cd ScheduleObserver
 
 ```Makefile
 # 目标内核的根目录（确认是否存在对应目录）
-LINUX_KERNEL_PATH := /home/user/Kernel/v6.6/x86_64/
+LINUX_KERNEL_PATH := /home/user/Kernel/v6.0/i386/
 ```
 
 * 编译内核模块。
@@ -46,7 +46,7 @@ make
 * 启动qemu运行编译好的内核。
 
 ```bash
-./run v6.6 x86_64 focal
+./run v6.0 i386 buster
 ```
 
 * 用户为user，无密码。
