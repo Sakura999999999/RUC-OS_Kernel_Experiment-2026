@@ -4,7 +4,7 @@ obj-m += hide_process.o
 CURRENT_PATH := $(shell pwd)
 
 # 目标内核的根目录（确认是否存在对应目录）
-LINUX_KERNEL_PATH := /home/user/Kernel/v6.6/x86_64/
+LINUX_KERNEL_PATH := /home/user/Kernel/v6.0/i386/
 
 all: malware hide_process.ko
 
