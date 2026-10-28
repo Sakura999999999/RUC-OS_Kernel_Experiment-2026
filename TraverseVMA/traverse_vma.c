@@ -17,7 +17,6 @@ static int __init traverse_all_vma_init(void)
 {
     struct task_struct *task;
     struct vm_area_struct *vma;
-    struct vma_iterator vmi;
 
     // 遍历系统中所有进程
     for_each_process(task) {
@@ -36,10 +35,8 @@ static int __init traverse_all_vma_init(void)
         // 加锁与迭代
         mmap_write_lock(mm);
 
-        vma_iter_init(&vmi, mm, 0);
-
         // 遍历所有 VMA，切换 VM_WRITE 位并打印差异
-        while ((vma = vma_next(&vmi)) != NULL) {
+        for (vma = mm->mmap; vma != NULL; vma = vma->vm_next) {
             unsigned long old_flags = vma->vm_flags;
             unsigned long new_flags; /* 仅用于打印/预期 */
 
