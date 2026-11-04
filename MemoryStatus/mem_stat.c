@@ -76,9 +76,8 @@ static void traverse_all_pages(void)
 static void show_vmas(struct mm_struct *mm)
 {
     struct vm_area_struct *vma;
-    VMA_ITERATOR(vmi, mm, 0);
 
-    pr_info("[memory_status] ===== Traverse VMA (Maple Tree) =====\n");
+    pr_info("[memory_status] ===== Traverse VMA =====\n");
 
     /* TODO: iterate VMAs and print basic info */
 }
@@ -102,14 +101,16 @@ static void traverse_page_table(struct mm_struct *mm)
 
 static int __init memory_status_init(void)
 {
+    struct task_struct *task;
+    struct mm_struct *mm;
+
     traverse_all_pages();
 
     if (pid < 0) {
         return 0;
     }
 
-    struct task_struct *task = pid_task(find_vpid(pid), PIDTYPE_PID);
-    struct mm_struct *mm;
+    task = pid_task(find_vpid(pid), PIDTYPE_PID);
 
     if (!task) {
         pr_err("[memory_status] PID %d not found\n", pid);
