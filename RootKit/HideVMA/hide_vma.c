@@ -9,9 +9,9 @@
 #include <linux/pid.h>
 #include <linux/sched.h>
 #include <linux/sched/task.h>
+#include <linux/sched/signal.h>
 #include <linux/string.h>
 #include <linux/mmap_lock.h>
-#include <linux/maple_tree.h>
 
 #define TARGET_PROC_NAME "malware"
 
@@ -26,14 +26,9 @@ static int hide_target_vma(struct task_struct *task)
 
     mm = task->mm;
 
-    MA_STATE(mas, &mm->mm_mt, 0, 0);
-
     down_write(&mm->mmap_lock);
-
-    mas_for_each(&mas, vma, ULONG_MAX) {
-        if (!vma)
-            break;
-
+    
+    for (vma = mm->mmap; vma; vma = vma->vm_next) {
         // TODO: 隐藏第一个可执行 VMA（代码段）
     }
 
@@ -77,4 +72,4 @@ module_exit(hidevma_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Your Name");
-MODULE_DESCRIPTION("Hide specific VMA of malware process using maple tree (Linux 6.6)");
+MODULE_DESCRIPTION("Hide specific VMA of malware process (Linux 6.0)");
