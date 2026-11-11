@@ -20,21 +20,21 @@ make run
 * malware会给出指示，请执行对应的cat命令。
 
 ```bash
-Malware process started. PID: 7936
+Malware process started. PID: 245
 Use: cat /proc/7936/maps to check VMA before and after loading the kernel module.
 ```
 
 * 请记录加载内核模块之前的malware的maps。
 
 ```bash
-cat /proc/7936/maps > ori
+cat /proc/245/maps > ori
 ```
 
 * 加载内核模块篡改malware的maps，并再次记录maps。
 
 ```bash
 make load
-cat /proc/7936/maps > new
+cat /proc/245/maps > new
 ```
 
 ## 实验要求
@@ -44,5 +44,5 @@ cat /proc/7936/maps > new
 ```bash
 root@kernel:~/HideVMA# diff ori new
 2d1
-< 564dcf334000-564dcf335000 r-xp 00001000 08:00 28519                      /root/HideVMA/malware
+< 004e2000-004e3000 r-xp 00001000 00:2d 3146011    /tmp/share/RUC-OS_Kernel_Experiment-2026/RootKit/HideVMA/malware
 ```
